@@ -1,0 +1,4 @@
+.micropico
+.vscode/
+test/
+__pycache__/
