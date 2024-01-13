@@ -5,19 +5,19 @@ class PixelLED():
         self.pin = Pin(pin, Pin.OUT)
         self.leds = leds
         self.bpp = bpp  # Bytes per Pixel
-        self.pixels = [0] * leds * self.bpp
+        self.pixels = [[0,0,0,0]] * leds
         self.buf = bytearray(leds * self.bpp)
         self.timing = (400, 850, 800, 450)
-        self.order = (1, 0, 2, 3)   # GRBW to RGBW
+        self.order = (1, 0, 2, 3)   # RGBW to GRBW
         self.brightness = 255
 
     def set_pixel(self, pos, rgbw, brightness=None):
         if brightness is None:
             brightness = self.brightness
-        if self.bpp == 4 and len(rgbw) == 3:
+        if len(rgbw) == 3:
             rgbw.append(0)
-        for byte in range(self.bpp):
-            self.pixels[pos * self.bpp + byte] = round(rgbw[self.order[byte]] / 255 * brightness)
+        rgbw = [round(byte / 255 * brightness) for byte in rgbw]
+        self.pixels[pos] = rgbw
 
     def build_gradient(self, rgbw1, rgbw2, steps):
         rgbw_steps = []
@@ -46,10 +46,10 @@ class PixelLED():
             self.brightness = brightness
 
     def get_pixel(self, pixel):
-        return self.pixels[pixel * self.bpp:pixel * self.bpp + 4]
+        return self.pixels[pixel]
 
     def show(self):
-        self.buf = bytearray(self.pixels)
+        self.buf = bytearray([sublist[index] for sublist in self.pixels for index in self.order[:self.bpp]])
         bitstream(self.pin, 0, self.timing, self.buf)
 
 class LightStripe(PixelLED):
@@ -85,25 +85,21 @@ class LightStripe(PixelLED):
 
     def rotate_right(self, steps=1):
         for _ in range(steps):
-            for _ in range(self.bpp):
-                self.pixels.insert(0, self.pixels.pop())
+            self.pixels.insert(0, self.pixels.pop())
 
     def rotate_left(self, steps=1):
         for _ in range(steps):
-            for _ in range(self.bpp):
-                self.pixels.append(self.pixels.pop(0))
+            self.pixels.append(self.pixels.pop(0))
 
     def shift_right(self, steps=1):
         for _ in range(steps):
-            for byte in range(self.bpp):
-                self.pixels.pop()
-                self.pixels.insert(0, 0)
+            self.pixels.pop()
+            self.pixels.insert(0, [0,0,0,0])
 
     def shift_left(self, steps=1):
         for _ in range(steps):
-            for byte in range(self.bpp):
-                self.pixels.pop(0)
-                self.pixels.append(0)
+            self.pixels.pop(0)
+            self.pixels.append([0,0,0,0])
 
     def set_section(self, pos_a, pos_b, section_id=None):
         if section_id is None:
@@ -111,7 +107,7 @@ class LightStripe(PixelLED):
             self.section_count += 1
         self.section_map[f"section_{section_id}"] = {
             "pos_a": min(pos_a, pos_b),
-            "pos_b": max(pos_a, pos_b)
+            "pos_b": max(pos_a, pos_b) + 1
         }
         return section_id
 
@@ -123,45 +119,53 @@ class LightStripe(PixelLED):
 
     def shift_section_right(self, pos_a, pos_b=None, steps=1):
         if pos_b is None:
-            lo = self.section_map[f"section_{pos_a}"]["pos_a"]
             hi = self.section_map[f"section_{pos_a}"]["pos_b"]
+            lo = self.section_map[f"section_{pos_a}"]["pos_a"]
             self.section_map[f"section_{pos_a}"]["pos_a"] += steps
             self.section_map[f"section_{pos_a}"]["pos_b"] += steps
         else:
-            lo = min(pos_a, pos_b)
             hi = max(pos_a, pos_b)
-        section = self.pixels[lo * self.bpp:hi * self.bpp + self.bpp]
-        for _ in range(self.bpp * steps):
-            section.insert(0, 0)
-        for byte in range(len(section)):
-            if lo * self.bpp + byte > len(self.pixels) - 1:
+            lo = min(pos_a, pos_b)
+        section = self.pixels[lo:hi]
+        for _ in range(steps):
+            section.insert(0, [0,0,0,0])
+        for pixel in range(len(section)):
+            if lo + pixel > len(self.pixels) - 1:
                 break
             else:
-                self.pixels[lo * self.bpp + byte] = section[byte]
+                self.pixels[lo + pixel] = section[pixel]
 
     def shift_section_left(self, pos_a, pos_b=None, steps=1):
         if pos_b is None:
-            lo = self.section_map[f"section_{pos_a}"]["pos_a"]
             hi = self.section_map[f"section_{pos_a}"]["pos_b"]
+            lo = self.section_map[f"section_{pos_a}"]["pos_a"]
             self.section_map[f"section_{pos_a}"]["pos_a"] -= steps
+            if self.section_map[f"section_{pos_a}"]["pos_a"] < 0:
+                self.section_map[f"section_{pos_a}"]["pos_a"] = 0
             self.section_map[f"section_{pos_a}"]["pos_b"] -= steps
+            if self.section_map[f"section_{pos_a}"]["pos_b"] < 0:
+                self.section_map[f"section_{pos_a}"]["pos_b"] = 0
         else:
             hi = max(pos_a, pos_b)
             lo = min(pos_a, pos_b)
-        section = self.pixels[lo * self.bpp:hi * self.bpp + self.bpp]
-        for _ in range(self.bpp * steps):
-            section.append(0)
-        for byte in range(len(section)):
-            if hi * self.bpp - 1 - byte < -4:
-                break
-            else:
-                self.pixels[(hi + 1) * self.bpp - 1 - byte] = section[len(section) - byte - 1]
+        section = self.pixels[lo:hi]
+        for _ in range(steps):
+            section.append([0, 0, 0, 0])
+        if len(section) > len(self.pixels[:hi]):
+            for _ in range(steps):
+                section.pop(0)
+            self.pixels[lo:hi] = section
+        else:
+            self.pixels[lo-steps:hi] = section
 
 class LightMatrix(PixelLED):
     def __init__(self, pin, leds, leds_height, leds_width, bpp=3):
         super().__init__(pin, leds, bpp)
         self.leds_height = leds_height
         self.leds_width = leds_width
+
+    def flip(self):
+        pass
 
     def build_line_in_x(self, line_nr):
         leds = [line_nr]

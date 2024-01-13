@@ -1,4 +1,6 @@
 .micropico
 .vscode/
 test/
+test.py
 __pycache__/
+pixelled_copy.py
