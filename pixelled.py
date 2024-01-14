@@ -164,24 +164,41 @@ class LightMatrix(PixelLED):
         super().__init__(pin, leds, bpp)
         self.leds_height = leds_height
         self.leds_width = leds_width
+        self.pixel_position_map = self.build_pixel_position_map()
 
-    def build_line_in_x(self, line_nr):
+    def build_pixel_position_line_in_x(self, line_nr):
         leds = [line_nr]
-        for i in range(1, int(self.leds_width + 1)):
-            leds.append(line_nr + i * 2 * self.leds_height - 1 - line_nr * 2)
-            leds.append(line_nr + i * 2 * self.leds_height)
+        for led in range(1, int(self.leds_width + 1)):
+            leds.append(line_nr + led * 2 * self.leds_height - 1 - line_nr * 2)
+            if len(leds) < self.leds_width:
+                leds.append(line_nr + led * 2 * self.leds_height)
         return leds
+    
+    def build_pixel_position_map(self):
+        pixel_position_map = [[] for _ in range(self.leds_height)]
+        for line in range(self.leds_height):
+            pixel_position_map[line] = self.build_pixel_position_line_in_x(line)
+        return pixel_position_map
+    
+    def set_pixel(self, pos, rgbw, brightness=None, pos_x=None):
+        if pos_x is None:
+            return super().set_pixel(pos, rgbw, brightness)
+        else:
+            if brightness is None:
+                brightness = self.brightness
+            if len(rgbw) == 3:
+                rgbw.append(0)
+            rgbw = [round(byte / 255 * brightness) for byte in rgbw]
+            self.pixels[self.pixel_position_map[pos][pos_x]] = rgbw
 
-    def set_pixel_line(self, pos_ax, pos_ay, length, rgbw, brightness=None):
-        leds = self.build_line_in_x(pos_ay)
-        for led in leds[pos_ax:length+pos_ax]:
+    def set_pixel_line(self, start_x, start_y, length, rgbw, brightness=None):
+        for led in self.pixel_position_map[start_y][start_x:length+start_x]:
             self.set_pixel(led, rgbw, brightness)
 
-    def set_pixel_line_gradient(self, pos_ax, pos_ay, length, rgbw1, rgbw2, brightness=None):
-        leds = self.build_line_in_x(pos_ay)
+    def set_pixel_line_gradient(self, start_x, start_y, length, rgbw1, rgbw2, brightness=None):
         rgbw_steps = self.build_gradient(rgbw1, rgbw2, length)
         count = 0
-        for led in leds[pos_ax:length+pos_ax]:
+        for led in self.pixel_position_map[start_y][start_x:length+start_x]:
             self.set_pixel(led, rgbw_steps[count], brightness)
             count += 1
 
@@ -211,6 +228,9 @@ class LightMatrix(PixelLED):
             for _ in range(self.leds_height):
                 self.pixels.append(self.pixels.pop(0))
             self.mirror_y()
+
+    def set_pixel_spiral(self):
+        pass
 
     def set_char(self):
         pass
