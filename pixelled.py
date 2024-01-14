@@ -159,13 +159,11 @@ class LightStripe(PixelLED):
             self.pixels[lo-steps:hi] = section
 
 class LightMatrix(PixelLED):
-    def __init__(self, pin, leds, leds_height, leds_width, bpp=3):
+    def __init__(self, pin, leds_height, leds_width, bpp=3):
+        leds = leds_height * leds_width
         super().__init__(pin, leds, bpp)
         self.leds_height = leds_height
         self.leds_width = leds_width
-
-    def flip(self):
-        pass
 
     def build_line_in_x(self, line_nr):
         leds = [line_nr]
@@ -195,14 +193,24 @@ class LightMatrix(PixelLED):
         for line in range(height):
             self.set_pixel_line(low_x, low_y + line, length, rgbw, brightness)
 
+    def mirror_x(self):
+        self.pixels.reverse()
+
+    def mirror_y(self):
+        for i in range(0, len(self.pixels), 8):
+            self.pixels[i:i+8] = self.pixels[i:i+8][::-1]
+
     def rotate_right(self, steps=1):
         for _ in range(steps):
-            for _ in range(self.leds_height * 2):
-                for _ in range(self.bpp):
-                    self.pixels.insert(0, self.pixels.pop())
+            for _ in range(self.leds_height):
+                self.pixels.insert(0, self.pixels.pop(self.leds-1))
+            self.mirror_y()
 
-    def rotate_left(self):
-        pass
+    def rotate_left(self, steps=1):
+        for _ in range(steps):
+            for _ in range(self.leds_height):
+                self.pixels.append(self.pixels.pop(0))
+            self.mirror_y()
 
     def set_char(self):
         pass
