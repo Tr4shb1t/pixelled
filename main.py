@@ -16,7 +16,7 @@ sky = [orange, blue, purple, yellow]
 pix = pixelled.LightMatrix(0, 8, 64, 3)
 
 while True:
-    pix.set_pixel(randint(0,pix.leds-1), sky[randint(0,3)], randint(1,10))
-    pix.set_pixel(randint(0,pix.leds-1), off)
+    pix.set_pixel_in_serial(randint(0,pix.leds-1), sky[randint(0,3)], randint(1,10))
+    pix.set_pixel_in_serial(randint(0,pix.leds-1), off)
     pix.show()
     # sleep(3)

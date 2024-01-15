@@ -11,7 +11,7 @@ class PixelLED():
         self.order = (1, 0, 2, 3)   # RGBW to GRBW
         self.brightness = 255
 
-    def set_pixel(self, pos, rgbw, brightness=None):
+    def set_pixel_in_serial(self, pos, rgbw, brightness=None):
         if brightness is None:
             brightness = self.brightness
         if len(rgbw) == 3:
@@ -31,11 +31,11 @@ class PixelLED():
 
     def fill(self, rgbw, brightness=None):
         for led in range(self.leds):
-            self.set_pixel(led, rgbw, brightness)
+            self.set_pixel_in_serial(led, rgbw, brightness)
 
     def clear(self):
         for led in range(self.leds):
-            self.set_pixel(led, [0, 0, 0, 0])
+            self.set_pixel_in_serial(led, [0, 0, 0, 0])
 
     def set_brightness(self, brightness):
         if brightness <= 1:
@@ -61,6 +61,9 @@ class LightStripe(PixelLED):
     def clear_section_map(self):
         self.section_map = {}
         self.section_count = 0
+
+    def set_pixel(self, pos, rgbw, brightness=None):
+        super().set_pixel_in_serial(pos, rgbw, brightness)
 
     def set_pixel_line(self, pos_a, pos_b, rgbw, brightness=None):
         if pos_a < pos_b:
@@ -180,16 +183,13 @@ class LightMatrix(PixelLED):
             pixel_position_map[line] = self.build_pixel_position_line_in_x(line)
         return pixel_position_map
     
-    def set_pixel(self, pos, rgbw, brightness=None, pos_x=None):
-        if pos_x is None:
-            return super().set_pixel(pos, rgbw, brightness)
-        else:
-            if brightness is None:
-                brightness = self.brightness
-            if len(rgbw) == 3:
-                rgbw.append(0)
-            rgbw = [round(byte / 255 * brightness) for byte in rgbw]
-            self.pixels[self.pixel_position_map[pos][pos_x]] = rgbw
+    def set_pixel(self, pos_x, pos_y, rgbw, brightness=None):
+        if brightness is None:
+            brightness = self.brightness
+        if len(rgbw) == 3:
+            rgbw.append(0)
+        rgbw = [round(byte / 255 * brightness) for byte in rgbw]
+        self.pixels[self.pixel_position_map[pos_y][pos_x]] = rgbw
 
     def set_pixel_line(self, start_x, start_y, length, rgbw, brightness=None):
         for led in self.pixel_position_map[start_y][start_x:length+start_x]:
@@ -237,5 +237,3 @@ class LightMatrix(PixelLED):
 
     def set_text(self):
         pass
-
-
