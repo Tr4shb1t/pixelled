@@ -193,13 +193,13 @@ class LightMatrix(PixelLED):
 
     def set_pixel_line(self, start_x, start_y, length, rgbw, brightness=None):
         for led in self.pixel_position_map[start_y][start_x:length+start_x]:
-            self.set_pixel(led, rgbw, brightness)
+            self.set_pixel_in_serial(led, rgbw, brightness)
 
     def set_pixel_line_gradient(self, start_x, start_y, length, rgbw1, rgbw2, brightness=None):
         rgbw_steps = self.build_gradient(rgbw1, rgbw2, length)
         count = 0
         for led in self.pixel_position_map[start_y][start_x:length+start_x]:
-            self.set_pixel(led, rgbw_steps[count], brightness)
+            self.set_pixel_in_serial(led, rgbw_steps[count], brightness)
             count += 1
 
     def set_pixel_rectangle(self, start_x, start_y, end_x, end_y, rgbw, brightness=None):
