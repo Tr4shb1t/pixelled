@@ -191,24 +191,35 @@ class LightMatrix(PixelLED):
         rgbw = [round(byte / 255 * brightness) for byte in rgbw]
         self.pixels[self.pixel_position_map[pos_y][pos_x]] = rgbw
 
-    def set_pixel_line(self, start_x, start_y, length, rgbw, brightness=None):
-        for led in self.pixel_position_map[start_y][start_x:length+start_x]:
-            self.set_pixel_in_serial(led, rgbw, brightness)
+    def set_pixel_line_horizontal(self, start_x, start_y, length, rgbw, brightness=None):
+        for led in range(length):
+            self.set_pixel(start_x + led, start_y, rgbw, brightness)
 
-    def set_pixel_line_gradient(self, start_x, start_y, length, rgbw1, rgbw2, brightness=None):
+    def set_pixel_line_vertical(self, start_x, start_y, length, rgbw, brightness=None):
+        for led in range(length):
+            self.set_pixel(start_x, start_y + led, rgbw, brightness)
+
+    def set_pixel_line_gradient_horizontal(self, start_x, start_y, length, rgbw1, rgbw2, brightness=None):
         rgbw_steps = self.build_gradient(rgbw1, rgbw2, length)
-        count = 0
-        for led in self.pixel_position_map[start_y][start_x:length+start_x]:
-            self.set_pixel_in_serial(led, rgbw_steps[count], brightness)
-            count += 1
+        for led in range(length):
+            self.set_pixel(start_x + led, start_y, rgbw_steps[led], brightness)
 
-    def set_pixel_rectangle(self, start_x, start_y, end_x, end_y, rgbw, brightness=None):
+    def set_pixel_line_gradient_vertical(self, start_x, start_y, length, rgbw1, rgbw2, brightness=None):
+        rgbw_steps = self.build_gradient(rgbw1, rgbw2, length)
+        for led in range(length):
+            self.set_pixel(start_x, start_y + led, rgbw_steps[led], brightness)
+
+    def set_pixel_rectangle(self, start_x, start_y, end_x, end_y, rgbw, fill=True, brightness=None):
         hi_x, low_x = max(start_x, end_x), min(start_x, end_x)
         hi_y, low_y = max(start_y, end_y), min(start_y, end_y)
         height = hi_y - low_y + 1
         length = hi_x - low_x + 1
         for line in range(height):
-            self.set_pixel_line(low_x, low_y + line, length, rgbw, brightness)
+            if line is not 0 and line is not height -1 and not fill:
+                self.set_pixel(low_x, low_y + line, rgbw, brightness)
+                self.set_pixel(hi_x, low_y + line, rgbw, brightness)
+            else:
+                self.set_pixel_line_horizontal(low_x, low_y + line, length, rgbw, brightness)
 
     def mirror_x(self):
         self.pixels.reverse()
