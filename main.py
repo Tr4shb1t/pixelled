@@ -1,23 +1,22 @@
 import pixelled
 from time import sleep
-import random
+from random import randint
 
 red = [255, 0, 0, 255]
 green = [0, 255, 0]
 blue = [0, 0, 255]
-purple = [120, 0, 255]
-yellow = [120, 120,0]
+purple = [120, 0, 180]
+yellow = [120, 75,0]
 colors= [[255,0,0], [0,255,0], [0,0,255]]
 white = [255,255,255]
-orange = [255, 120, 0]
-black = [0,0,0]
+orange = [180, 20, 0]
+off = [0,0,0]
 sky = [orange, blue, purple, yellow]
 
-pix = pixelled.LightMatrix(0, 512, 8, 32)
+pix = pixelled.LightMatrix(0, 8, 64, 3)
 
 while True:
-    for _ in range(200):
-        pix.set_pixel(random.randint(0,511),sky[random.randint(0,3)],random.randint(1,10))
-        pix.set_pixel(random.randint(0,511),black)
-        pix.show()
-        # sleep(3)
+    pix.set_pixel(randint(0,pix.leds-1), sky[randint(0,3)], randint(1,10))
+    pix.set_pixel(randint(0,pix.leds-1), off)
+    pix.show()
+    # sleep(3)
