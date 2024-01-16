@@ -45,15 +45,15 @@ class PixelLED():
         else:
             self.brightness = brightness
 
-    def get_pixel(self, pixel):
-        return self.pixels[pixel]
+    def get_pixel_in_serial(self, pos):
+        return self.pixels[pos][:self.bpp]
 
     def show(self):
         self.buf = bytearray([sublist[index] for sublist in self.pixels for index in self.order[:self.bpp]])
         bitstream(self.pin, 0, self.timing, self.buf)
 
 class LightStripe(PixelLED):
-    def __init__(self, pin, leds, bpp=4):
+    def __init__(self, pin, leds, bpp=3):
         super().__init__(pin, leds, bpp)
         self.section_map = {}
         self.section_count = 0
@@ -61,6 +61,9 @@ class LightStripe(PixelLED):
     def clear_section_map(self):
         self.section_map = {}
         self.section_count = 0
+
+    def get_pixel(self, pos):
+        return super().get_pixel_in_serial(pos)
 
     def set_pixel(self, pos, rgbw, brightness=None):
         super().set_pixel_in_serial(pos, rgbw, brightness)
@@ -182,6 +185,10 @@ class LightMatrix(PixelLED):
         for line in range(self.leds_height):
             pixel_position_map[line] = self.build_pixel_position_line_in_x(line)
         return pixel_position_map
+    
+    def get_pixel(self, pos_x, pos_y):
+        rgbw = self.pixels[self.pixel_position_map[pos_y][pos_x]][:self.bpp]
+        return rgbw
     
     def set_pixel(self, pos_x, pos_y, rgbw, brightness=None):
         if brightness is None:
