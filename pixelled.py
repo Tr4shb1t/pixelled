@@ -5,18 +5,19 @@ class PixelLED():
         self.pin = Pin(pin, Pin.OUT)
         self.leds = leds
         self.bpp = bpp  # Bytes per Pixel
-        self.pixels = [[0,0,0,0]] * leds
+        self.pixels = [[0,0,0,0,None]] * leds
         self.buf = bytearray(leds * self.bpp)
         self.timing = (400, 850, 800, 450)
         self.order = (1, 0, 2, 3)   # RGBW to GRBW
-        self.brightness = 255
+        self.default_brightness = 255
 
     def set_pixel_in_serial(self, pos, rgbw, brightness=None):
         if brightness is None:
-            brightness = self.brightness
+            brightness = self.default_brightness
         if len(rgbw) == 3:
             rgbw.append(0)
         rgbw = [round(byte / 255 * brightness) for byte in rgbw]
+        rgbw.append(brightness)
         self.pixels[pos] = rgbw
 
     def build_gradient(self, rgbw1, rgbw2, steps):
@@ -35,18 +36,26 @@ class PixelLED():
 
     def clear(self):
         for led in range(self.leds):
-            self.set_pixel_in_serial(led, [0, 0, 0, 0])
+            self.pixels[led] = [0, 0, 0, 0, None]
+
+    def set_default_brightness(self, brightness):
+        if brightness <= 1:
+            self.default_brightness = 1
+        if brightness >= 255:
+            self.default_brightness = 255
+        else:
+            self.default_brightness = brightness
 
     def set_brightness(self, brightness):
-        if brightness <= 1:
-            self.brightness = 1
-        if brightness >= 255:
-            self.brightness = 255
-        else:
-            self.brightness = brightness
+        for index, led in enumerate(self.pixels):
+            if led[-1] is not None:
+                self.pixels[index] = [round(byte / led[-1] * brightness) for byte in led[:-1]]
+                self.pixels[index].append(brightness)
 
     def get_pixel_in_serial(self, pos):
-        return self.pixels[pos][:self.bpp]
+        color = self.pixels[pos][:self.bpp]
+        brightness = self.pixels[pos][-1]
+        return color, brightness
 
     def show(self):
         self.buf = bytearray([sublist[index] for sublist in self.pixels for index in self.order[:self.bpp]])
@@ -100,12 +109,12 @@ class LightStripe(PixelLED):
     def shift_right(self, steps=1):
         for _ in range(steps):
             self.pixels.pop()
-            self.pixels.insert(0, [0,0,0,0])
+            self.pixels.insert(0, [0, 0, 0, 0, None])
 
     def shift_left(self, steps=1):
         for _ in range(steps):
             self.pixels.pop(0)
-            self.pixels.append([0,0,0,0])
+            self.pixels.append([0, 0, 0, 0, None])
 
     def set_section(self, pos_a, pos_b, section_id=None):
         if section_id is None:
@@ -134,7 +143,7 @@ class LightStripe(PixelLED):
             lo = min(pos_a, pos_b)
         section = self.pixels[lo:hi]
         for _ in range(steps):
-            section.insert(0, [0,0,0,0])
+            section.insert(0, [0, 0, 0, 0, None])
         for pixel in range(len(section)):
             if lo + pixel > len(self.pixels) - 1:
                 break
@@ -156,7 +165,7 @@ class LightStripe(PixelLED):
             lo = min(pos_a, pos_b)
         section = self.pixels[lo:hi]
         for _ in range(steps):
-            section.append([0, 0, 0, 0])
+            section.append([0, 0, 0, 0, None])
         if len(section) > len(self.pixels[:hi]):
             for _ in range(steps):
                 section.pop(0)
@@ -187,15 +196,17 @@ class LightMatrix(PixelLED):
         return pixel_position_map
     
     def get_pixel(self, pos_x, pos_y):
-        rgbw = self.pixels[self.pixel_position_map[pos_y][pos_x]][:self.bpp]
-        return rgbw
+        color = self.pixels[self.pixel_position_map[pos_y][pos_x]][:self.bpp]
+        brightness = self.pixels[self.pixel_position_map[pos_y][pos_x]][-1]
+        return color, brightness
     
     def set_pixel(self, pos_x, pos_y, rgbw, brightness=None):
         if brightness is None:
-            brightness = self.brightness
+            brightness = self.default_brightness
         if len(rgbw) == 3:
             rgbw.append(0)
         rgbw = [round(byte / 255 * brightness) for byte in rgbw]
+        rgbw.append(brightness)
         self.pixels[self.pixel_position_map[pos_y][pos_x]] = rgbw
 
     def set_pixel_line_horizontal(self, start_x, start_y, length, rgbw, brightness=None):
