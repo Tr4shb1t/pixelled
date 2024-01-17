@@ -12,11 +12,14 @@ class PixelLED():
         self.default_brightness = 255
 
     def set_pixel_in_serial(self, pos, rgbw, brightness=None):
-        if brightness is None:
+        if sum(rgbw[:self.bpp]) is 0:
+            brightness = None
+        elif brightness is None:
             brightness = self.default_brightness
         if len(rgbw) == 3:
             rgbw.append(0)
-        rgbw = [round(byte / 255 * brightness) for byte in rgbw]
+        if brightness is not None:
+            rgbw = [round(byte / 255 * brightness) for byte in rgbw]
         rgbw.append(brightness)
         self.pixels[pos] = rgbw
 
@@ -201,11 +204,14 @@ class LightMatrix(PixelLED):
         return color, brightness
     
     def set_pixel(self, pos_x, pos_y, rgbw, brightness=None):
-        if brightness is None:
+        if sum(rgbw[:self.bpp]) is 0:
+            brightness = None
+        elif brightness is None:
             brightness = self.default_brightness
         if len(rgbw) == 3:
             rgbw.append(0)
-        rgbw = [round(byte / 255 * brightness) for byte in rgbw]
+        if brightness is not None:
+            rgbw = [round(byte / 255 * brightness) for byte in rgbw]
         rgbw.append(brightness)
         self.pixels[self.pixel_position_map[pos_y][pos_x]] = rgbw
 
