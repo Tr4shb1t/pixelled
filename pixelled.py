@@ -1,7 +1,7 @@
 from machine import Pin, bitstream
 
 class PixelLED():
-    def __init__(self, pin, leds, bpp=4):
+    def __init__(self, pin, leds, bpp=3):
         self.pin = Pin(pin, Pin.OUT)
         self.leds = leds
         self.bpp = bpp  # Bytes per Pixel
@@ -12,16 +12,17 @@ class PixelLED():
         self.default_brightness = 255
 
     def set_pixel_in_serial(self, pos, rgbw, brightness=None):
-        if sum(rgbw[:self.bpp]) is 0:
+        rgbw_copy = rgbw.copy()
+        if sum(rgbw_copy[:self.bpp]) is 0:
             brightness = None
         elif brightness is None:
             brightness = self.default_brightness
-        if len(rgbw) == 3:
-            rgbw.append(0)
+        if len(rgbw_copy) == 3:
+            rgbw_copy.append(0)
         if brightness is not None:
-            rgbw = [round(byte / 255 * brightness) for byte in rgbw]
-        rgbw.append(brightness)
-        self.pixels[pos] = rgbw
+            rgbw_copy = [round(byte / 255 * brightness) for byte in rgbw_copy]
+        rgbw_copy.append(brightness)
+        self.pixels[pos] = rgbw_copy
 
     def build_gradient(self, rgbw1, rgbw2, steps):
         rgbw_steps = []
@@ -42,14 +43,18 @@ class PixelLED():
             self.pixels[led] = [0, 0, 0, 0, None]
 
     def set_default_brightness(self, brightness):
-        if brightness <= 1:
+        if brightness < 1:
             self.default_brightness = 1
-        if brightness >= 255:
+        elif brightness > 255:
             self.default_brightness = 255
         else:
             self.default_brightness = brightness
 
     def set_brightness(self, brightness):
+        if brightness < 1:
+            brightness = 1
+        elif brightness > 255:
+            brightness = 255
         for index, led in enumerate(self.pixels):
             if led[-1] is not None:
                 self.pixels[index] = [round(byte / led[-1] * brightness) for byte in led[:-1]]
@@ -204,16 +209,17 @@ class LightMatrix(PixelLED):
         return color, brightness
     
     def set_pixel(self, pos_x, pos_y, rgbw, brightness=None):
-        if sum(rgbw[:self.bpp]) is 0:
+        rgbw_copy = rgbw.copy()
+        if sum(rgbw_copy[:self.bpp]) is 0:
             brightness = None
         elif brightness is None:
             brightness = self.default_brightness
-        if len(rgbw) == 3:
-            rgbw.append(0)
+        if len(rgbw_copy) == 3:
+            rgbw_copy.append(0)
         if brightness is not None:
-            rgbw = [round(byte / 255 * brightness) for byte in rgbw]
-        rgbw.append(brightness)
-        self.pixels[self.pixel_position_map[pos_y][pos_x]] = rgbw
+            rgbw_copy = [round(byte / 255 * brightness) for byte in rgbw_copy]
+        rgbw_copy.append(brightness)
+        self.pixels[self.pixel_position_map[pos_y][pos_x]] = rgbw_copy
 
     def set_pixel_line_horizontal(self, start_x, start_y, length, rgbw, brightness=None):
         for led in range(length):
