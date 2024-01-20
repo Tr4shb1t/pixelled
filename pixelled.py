@@ -50,15 +50,17 @@ class PixelLED():
         else:
             self.default_brightness = brightness
 
-    def set_brightness(self, brightness):
+    def set_pixel_brightness_in_serial(self, pos, brightness):
         if brightness < 1:
             brightness = 1
         elif brightness > 255:
             brightness = 255
-        for index, led in enumerate(self.pixels):
-            if led[-1] is not None:
-                self.pixels[index] = [round(byte / led[-1] * brightness) for byte in led[:-1]]
-                self.pixels[index].append(brightness)
+        self.pixels[pos] = [round(byte / self.pixels[pos][-1] * brightness) for byte in self.pixels[pos][:-1]]
+        self.pixels[pos].append(brightness)
+
+    def set_brightness(self, brightness):
+        for led in range(self.leds):
+            self.set_pixel_brightness_in_serial(led, brightness)
 
     def get_pixel_in_serial(self, pos):
         color = self.pixels[pos][:self.bpp]
@@ -75,12 +77,11 @@ class LightStripe(PixelLED):
         self.section_map = {}
         self.section_count = 0
 
-    def clear_section_map(self):
-        self.section_map = {}
-        self.section_count = 0
-
     def get_pixel(self, pos):
         return super().get_pixel_in_serial(pos)
+    
+    def set_pixel_brightness(self, pos, brightness):
+        super().set_pixel_brightness_in_serial(pos, brightness)
 
     def set_pixel(self, pos, rgbw, brightness=None):
         super().set_pixel_in_serial(pos, rgbw, brightness)
@@ -123,6 +124,10 @@ class LightStripe(PixelLED):
         for _ in range(steps):
             self.pixels.pop(0)
             self.pixels.append([0, 0, 0, 0, None])
+
+    def clear_section_map(self):
+        self.section_map = {}
+        self.section_count = 0
 
     def set_section(self, pos_a, pos_b, section_id=None):
         if section_id is None:
@@ -204,22 +209,16 @@ class LightMatrix(PixelLED):
         return pixel_position_map
     
     def get_pixel(self, pos_x, pos_y):
-        color = self.pixels[self.pixel_position_map[pos_y][pos_x]][:self.bpp]
-        brightness = self.pixels[self.pixel_position_map[pos_y][pos_x]][-1]
-        return color, brightness
+        pos = self.pixel_position_map[pos_y][pos_x]
+        return super().get_pixel_in_serial(pos)
     
+    def set_pixel_brightness(self, pos_x, pos_y, brightness):
+        pos = self.pixel_position_map[pos_y][pos_x]
+        super().set_pixel_brightness_in_serial(pos, brightness)
+
     def set_pixel(self, pos_x, pos_y, rgbw, brightness=None):
-        rgbw_copy = rgbw.copy()
-        if sum(rgbw_copy[:self.bpp]) is 0:
-            brightness = None
-        elif brightness is None:
-            brightness = self.default_brightness
-        if len(rgbw_copy) == 3:
-            rgbw_copy.append(0)
-        if brightness is not None:
-            rgbw_copy = [round(byte / 255 * brightness) for byte in rgbw_copy]
-        rgbw_copy.append(brightness)
-        self.pixels[self.pixel_position_map[pos_y][pos_x]] = rgbw_copy
+        pos = self.pixel_position_map[pos_y][pos_x]
+        super().set_pixel_in_serial(pos, rgbw, brightness)
 
     def set_pixel_line_horizontal(self, start_x, start_y, length, rgbw, brightness=None):
         for led in range(length):
@@ -269,9 +268,6 @@ class LightMatrix(PixelLED):
             for _ in range(self.leds_height):
                 self.pixels.append(self.pixels.pop(0))
             self.mirror_y()
-
-    def set_pixel_spiral(self):
-        pass
 
     def set_char(self):
         pass
