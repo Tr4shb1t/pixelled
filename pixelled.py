@@ -79,13 +79,13 @@ class LightStripe(PixelLED):
         self.section_count = 0
 
     def get_pixel(self, pos):
-        return super().get_pixel_in_serial(pos)
+        return self.get_pixel_in_serial(pos)
     
     def set_pixel_brightness(self, pos, brightness):
-        super().set_pixel_brightness_in_serial(pos, brightness)
+        self.set_pixel_brightness_in_serial(pos, brightness)
 
     def set_pixel(self, pos, rgbw, brightness=None):
-        super().set_pixel_in_serial(pos, rgbw, brightness)
+        self.set_pixel_in_serial(pos, rgbw, brightness)
 
     def set_pixel_line(self, pos_a, pos_b, rgbw, brightness=None):
         if pos_a < pos_b:
@@ -256,15 +256,15 @@ class LightMatrix(PixelLED):
     
     def get_pixel(self, pos_x, pos_y):
         pos = self.pixel_position_map[pos_y][pos_x]
-        return super().get_pixel_in_serial(pos)
+        return self.get_pixel_in_serial(pos)
     
     def set_pixel_brightness(self, pos_x, pos_y, brightness):
         pos = self.pixel_position_map[pos_y][pos_x]
-        super().set_pixel_brightness_in_serial(pos, brightness)
+        self.set_pixel_brightness_in_serial(pos, brightness)
 
     def set_pixel(self, pos_x, pos_y, rgbw, brightness=None):
         pos = self.pixel_position_map[pos_y][pos_x]
-        super().set_pixel_in_serial(pos, rgbw, brightness)
+        self.set_pixel_in_serial(pos, rgbw, brightness)
 
     def set_pixel_line_horizontal(self, start_x, start_y, length, rgbw, brightness=None):
         for led in range(length):
