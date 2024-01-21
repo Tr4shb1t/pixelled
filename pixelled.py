@@ -17,7 +17,7 @@ class PixelLED():
             brightness = None
         elif brightness is None:
             brightness = self.default_brightness
-        if len(rgbw_copy) == 3:
+        while len(rgbw_copy) < 4:
             rgbw_copy.append(0)
         if brightness is not None:
             rgbw_copy = [round(byte / 255 * brightness) for byte in rgbw_copy]
@@ -254,8 +254,8 @@ class LightMatrix(PixelLED):
         self.pixels.reverse()
 
     def mirror_y(self):
-        for i in range(0, len(self.pixels), 8):
-            self.pixels[i:i+8] = self.pixels[i:i+8][::-1]
+        for i in range(0, len(self.pixels), self.leds_height):
+            self.pixels[i:i+self.leds_height] = self.pixels[i:i+self.leds_height][::-1]
 
     def rotate_right(self, steps=1):
         for _ in range(steps):
@@ -268,6 +268,44 @@ class LightMatrix(PixelLED):
             for _ in range(self.leds_height):
                 self.pixels.append(self.pixels.pop(0))
             self.mirror_y()
+
+    def rotate_up(self, steps=1):
+        for _ in range(steps):
+            for column in range(self.leds_width):
+                self.pixels.insert(self.pixel_position_map[self.leds_height - 1][column], 
+                                   self.pixels.pop(self.pixel_position_map[0][column]))
+
+    def rotate_down(self, steps=1):
+        for _ in range(steps):
+            for column in range(self.leds_width):
+                self.pixels.insert(self.pixel_position_map[0][column], 
+                                   self.pixels.pop(self.pixel_position_map[self.leds_height - 1][column]))
+
+    def shift_right(self, steps=1):
+        for _ in range(steps):
+            for _ in range(self.leds_height):
+                self.pixels.pop(self.leds-1)
+                self.pixels.insert(0, [0, 0, 0, 0, None])
+            self.mirror_y()
+
+    def shift_left(self, steps=1):
+        for _ in range(steps):
+            for _ in range(self.leds_height):
+                self.pixels.pop(0)
+                self.pixels.append([0, 0, 0, 0, None])
+            self.mirror_y()
+
+    def shift_up(self, steps=1):
+        for _ in range(steps):
+            for column in range(self.leds_width):
+                self.pixels.pop(self.pixel_position_map[0][column])
+                self.pixels.insert(self.pixel_position_map[self.leds_height - 1][column], [0, 0, 0, 0, None])
+
+    def shift_down(self, steps=1):
+        for _ in range(steps):
+            for column in range(self.leds_width):
+                self.pixels.pop(self.pixel_position_map[self.leds_height - 1][column])
+                self.pixels.insert(self.pixel_position_map[0][column], [0, 0, 0, 0, None])
 
     def set_char(self):
         pass
