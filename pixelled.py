@@ -1,4 +1,5 @@
 from machine import Pin, bitstream
+from utime import sleep
 
 class PixelLED():
     def __init__(self, pin, leds, bpp=3):
@@ -201,7 +202,7 @@ class LightMatrix(PixelLED):
                      "F": 0x7e10e4210,
                      "G": 0x3a30bc62e,
                      "H": 0x4631fc631,
-                     "I": 0x38842108e,
+                     "I": 0x1d2497,
                      "J": 0x3c4210a4c,
                      "K": 0x4654c5251,
                      "L": 0x42108421f,
@@ -229,8 +230,15 @@ class LightMatrix(PixelLED):
                      "7": 0x7c2222108,
                      "8": 0x3a317462e,
                      "9": 0x3a317862e,
-                     ":": 0x8000080,
+                     ":": 0x10010,
+                     "!": 0x92482,
+                     "?": 0x3a2111004,
+                     "<": 0xa888,
+                     ">": 0x222a0,
+                     "-": 0xf8000,
+                     "+": 0x84f9080,
                      " ": 0x0}
+        self.short_chars = "!:<>I"
 
     def build_pixel_position_line_in_x(self, line_nr):
         leds = [line_nr]
@@ -348,16 +356,26 @@ class LightMatrix(PixelLED):
     def set_char(self, pos_x, pos_y, char, rgbw, brightness=None):
         char = char.upper()
         binary_string = bin(self.CMAP[char])[2:] 
-        desired_length = 35
-        binary_string = '0' * (desired_length - len(binary_string)) + binary_string
+        desired_binary_length = 21 if char in self.short_chars else 35
+        binary_string = '0' * (desired_binary_length - len(binary_string)) + binary_string
         color = rgbw.copy()
         count = 0
+        char_with = 3 if char in self.short_chars else 5
         for row in range(7):
-            for column in range(5):
+            for column in range(char_with):
                 if binary_string[count] == "1":
                     self.set_pixel(column + pos_x, row + pos_y, color, brightness)
                 count += 1
 
-    def set_text(self, pos_x, pos_y, text, rgbw, brightness=None):
-        for index, char in enumerate(text):
-            self.set_char(pos_x + index * 6, pos_y, char, rgbw, brightness)
+    def set_text(self, pos_x, pos_y, text, rgbw, brightness=None, animated=False, animation_delay=0.01):
+        text = text.upper()
+        index = 0
+        for char in text:
+            self.set_char(pos_x + index, pos_y, char, rgbw, brightness)
+            if char in self.short_chars:
+                index += 4
+            else:
+                index += 6
+            if animated:
+                self.show()
+                sleep(animation_delay)
