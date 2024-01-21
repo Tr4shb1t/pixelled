@@ -193,6 +193,44 @@ class LightMatrix(PixelLED):
         self.leds_height = leds_height
         self.leds_width = leds_width
         self.pixel_position_map = self.build_pixel_position_map()
+        self.CMAP = {"A": 0x3a31fc631,
+                     "B": 0x7a31f463e,
+                     "C": 0x3a308422e,
+                     "D": 0x7a318c63e,
+                     "E": 0x7e10f421f,
+                     "F": 0x7e10e4210,
+                     "G": 0x3a30bc62e,
+                     "H": 0x4631fc631,
+                     "I": 0x38842108e,
+                     "J": 0x3c4210a4c,
+                     "K": 0x4654c5251,
+                     "L": 0x42108421f,
+                     "M": 0x47758c631,
+                     "N": 0x47359c631,
+                     "O": 0x3a318c62e,
+                     "P": 0x7a31f4210,
+                     "Q": 0x3a318d66f,
+                     "R": 0x7a31f5251,
+                     "S": 0x3a307062e,
+                     "T": 0x7c8421084,
+                     "U": 0x46318c62e,
+                     "V": 0x46318c544,
+                     "W": 0x46318d6ab,
+                     "X": 0x462a22a31,
+                     "Y": 0x463151084,
+                     "Z": 0x7c222221f,
+                     "0": 0x3a39ace2e,
+                     "1": 0x11842108e,
+                     "2": 0x3a211111f,
+                     "3": 0x7c223062e,
+                     "4": 0x8ca97c42,
+                     "5": 0x7e1e0862e,
+                     "6": 0x3a30f462e,
+                     "7": 0x7c2222108,
+                     "8": 0x3a317462e,
+                     "9": 0x3a317862e,
+                     ":": 0x8000080,
+                     " ": 0x0}
 
     def build_pixel_position_line_in_x(self, line_nr):
         leds = [line_nr]
@@ -307,8 +345,19 @@ class LightMatrix(PixelLED):
                 self.pixels.pop(self.pixel_position_map[self.leds_height - 1][column])
                 self.pixels.insert(self.pixel_position_map[0][column], [0, 0, 0, 0, None])
 
-    def set_char(self):
-        pass
+    def set_char(self, pos_x, pos_y, char, rgbw, brightness=None):
+        char = char.upper()
+        binary_string = bin(self.CMAP[char])[2:] 
+        desired_length = 35
+        binary_string = '0' * (desired_length - len(binary_string)) + binary_string
+        color = rgbw.copy()
+        count = 0
+        for row in range(7):
+            for column in range(5):
+                if binary_string[count] == "1":
+                    self.set_pixel(column + pos_x, row + pos_y, color, brightness)
+                count += 1
 
-    def set_text(self):
-        pass
+    def set_text(self, pos_x, pos_y, text, rgbw, brightness=None):
+        for index, char in enumerate(text):
+            self.set_char(pos_x + index * 6, pos_y, char, rgbw, brightness)
